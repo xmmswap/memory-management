@@ -50,11 +50,8 @@ impl::simple_pow2_pool_base::extend(size_t alloc_size, size_t align_size,
 	auto cur = static_cast<char *>(m_cur);
 	void *ret = extend(alloc_size < align_size ? align_size : alloc_size);
 
-	for (size_t i = 0; alloc_size < align_size; i++) {
-		cur += alloc_size;
-		alloc_size *= 2;
-		add_to_list(freelists[i], cur);
-	}
+	for (size_t i = 0; alloc_size < align_size; alloc_size *= 2, i++)
+		add_to_list(freelists[i], cur + alloc_size);
 
 	return ret;
 }
