@@ -54,7 +54,7 @@ protected:
 		return !(n & (n - 1));
 	}
 
-	simple_pow2_pool_base(void *pool, size_t size)
+	simple_pow2_pool_base(void *pool, size_t size) noexcept
 		: m_cur(pool)
 		, m_left(size)
 	{}
@@ -132,7 +132,10 @@ public:
 	simple_pow2_pool(simple_pow2_pool const &) = delete;
 	void operator=(simple_pow2_pool const &) = delete;
 
-	simple_pow2_pool(void *pool, size_t size)
+	simple_pow2_pool(simple_pow2_pool &&) = default;
+	simple_pow2_pool &operator=(simple_pow2_pool &&) = default;
+
+	simple_pow2_pool(void *pool, size_t size) noexcept
 		: impl::simple_pow2_pool_base(pool, size)
 	{}
 
