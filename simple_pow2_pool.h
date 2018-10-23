@@ -127,6 +127,11 @@ class simple_pow2_pool : impl::simple_pow2_pool_base
 		    n <= constexpr_pow2(POW_MAX);
 	}
 
+	static size_t min_size(size_t a, size_t b)
+	{
+		return a < b ? a : b;
+	}
+
 	FreeNode *m_freelists[POW_MAX - POW_MIN + 1] {};
 public:
 	simple_pow2_pool(simple_pow2_pool const &) = delete;
@@ -190,6 +195,59 @@ public:
 		}
 
 		assert(false); // [[unreachable]]
+	}
+
+	// XXX Pass rw and locality to prefetch functions.
+	void prefetch_next_alloc()
+	{
+		for (auto i = POW_MIN; i <= POW_MAX; i++)
+			__builtin_prefetch(m_freelists[i - POW_MIN]);
+	}
+
+	template<class T>
+	void prefetch_next_alloc()
+	{
+		static_assert(constexpr_good_size(sizeof(T)), "bad type");
+
+		for (auto i = POW_MIN; i <= POW_MAX; i++) {
+			size_t const alloc_size = constexpr_pow2(i);
+
+			if (alloc_size != sizeof(T))
+				continue;
+
+			__builtin_prefetch(m_freelists[i - POW_MIN]);
+		}
+	}
+
+	// Prefetch up to n cachelines.
+	void prefetch_next_alloc_deep(size_t n, size_t cacheline = 64)
+	{
+		for (auto i = POW_MIN; i <= POW_MAX; i++) {
+			size_t const alloc_size = constexpr_pow2(i);
+			size_t const stop = min_size(n * cacheline, alloc_size);
+			auto p = static_cast<void *>(m_freelists[i - POW_MIN]);
+
+			for (size_t i = 0; i < stop; i += cacheline)
+				__builtin_prefetch(static_cast<char *>(p) + i);
+		}
+	}
+
+	template<class T>
+	void prefetch_next_alloc_deep(size_t n, size_t cacheline = 64)
+	{
+		static_assert(constexpr_good_size(sizeof(T)), "bad type");
+
+		for (auto i = POW_MIN; i <= POW_MAX; i++) {
+			size_t const alloc_size = constexpr_pow2(i);
+			size_t const stop = min_size(n * cacheline, alloc_size);
+			auto p = static_cast<void *>(m_freelists[i - POW_MIN]);
+
+			if (alloc_size != sizeof(T))
+				continue;
+
+			for (size_t i = 0; i < stop; i += cacheline)
+				__builtin_prefetch(static_cast<char *>(p) + i);
+		}
 	}
 };
 

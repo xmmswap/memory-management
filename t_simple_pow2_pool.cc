@@ -26,6 +26,12 @@ int main(int argc, char *argv[])
 
 		assert((ptr == nullptr) == (raw_sizes[n] == 0));
 
+		pool.prefetch_next_alloc();
+		pool.prefetch_next_alloc<size_t[1]>();
+
+		pool.prefetch_next_alloc_deep(2);
+		pool.prefetch_next_alloc_deep<size_t[4]>(3);
+
 		if (ptr) {
 			assert(ptr[0] < i);
 			assert(ptr[0] == values[n]);
